@@ -1,24 +1,35 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import "../global.css"; 
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import React, { useEffect } from "react";
+import { Stack } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { useAuthStore } from "./src/store/useAuthStore";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { user, loading, restoreSession } = useAuthStore();
+
+  useEffect(() => {
+    restoreSession();
+  }, []);
+
+  if (loading)
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" />
+      </View>
+    );
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      {user ? (
+        user.role === "admin" ? (
+          <Stack.Screen name="admin/index" />
+        ) : (
+          <Stack.Screen name="index" />
+        )
+      ) : (
+        <Stack.Screen name="login" />
+      )}
+    </Stack>
   );
 }
