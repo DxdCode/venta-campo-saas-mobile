@@ -1,31 +1,78 @@
-import { api } from "./apiClient";
+import axios from 'axios';
+import { API_URL } from '../utils/constants';
 
-export interface LoginData {
-  email: string;
-  password: string;
-}
+const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 10000, 
+});
 
-export interface RegisterData {
+// Interceptor para agregar el token a las peticiones
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
+// Interceptor para manejo de respuestas
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Log para debugging
+    if (error.response) {
+      console.log('API Error:', {
+        status: error.response.status,
+        message: error.response.data?.message,
+        url: error.config?.url,
+      });
+    }
+    return Promise.reject(error);
+  }
+);
+
+interface RegisterData {
   name: string;
   email: string;
   password: string;
 }
 
-export const login = async (data: LoginData) => {
-  const res = await api.post("/auth/login", data);
-  return res.data;
+interface LoginData {
+  email: string;
+  password: string;
+}
+
+interface AuthResponse {
+  user: {
+    name: string;
+    role: string;
+  };
+  accessToken: string;
+}
+
+export const authService = {
+  register: async (data: RegisterData): Promise<AuthResponse> => {
+    const response = await api.post('/auth/register', data);
+    return response.data;
+  },
+
+  login: async (data: LoginData): Promise<AuthResponse> => {
+    const response = await api.post('/auth/login', data);
+    return response.data;
+  },
+
+  refreshToken: async (): Promise<AuthResponse> => {
+    const response = await api.post('/auth/refresh-token');
+    return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post('/auth/logout');
+  },
 };
 
-export const register = async (data: RegisterData) => {
-  const res = await api.post("/auth/register", data);
-  return res.data;
-};
-
-export const logout = async () => {
-  await api.post("/auth/logout");
-};
-
-export const refreshToken = async () => {
-  const res = await api.post("/auth/refresh-token");
-  return res.data;
-};
+export default api;

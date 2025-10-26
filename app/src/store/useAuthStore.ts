@@ -1,6 +1,5 @@
-import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as authService from "../api/authService";
+import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface User {
   name: string;
@@ -10,64 +9,79 @@ interface User {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  loading: boolean;
-  login: (data: { email: string; password: string }) => Promise<void>;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Actions
+  setUser: (user: User, accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
-  restoreSession: () => Promise<void>;
+  loadStoredAuth: () => Promise<void>;
+  setError: (error: string | null) => void;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
-  loading: true,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
 
-  login: async (data) => {
-    set({ loading: true });
+  setUser: async (user, accessToken) => {
     try {
-      const response = await authService.login(data);
-      const { user, accessToken } = response;
-
-      await AsyncStorage.setItem("user", JSON.stringify(user));
-      await AsyncStorage.setItem("accessToken", accessToken);
-
-      set({ user, accessToken, loading: false });
-    } catch (error: any) {
-      console.error("Error login:", error.message || error);
-      set({ loading: false });
-      throw error;
+      await AsyncStorage.setItem('accessToken', accessToken);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      set({ 
+        user, 
+        accessToken, 
+        isAuthenticated: true, 
+        error: null 
+      });
+    } catch (error) {
+      console.error('Error saving auth data:', error);
+      set({ error: 'Error al guardar datos de autenticación' });
     }
   },
 
   logout: async () => {
-    await authService.logout();
-    await AsyncStorage.removeItem("user");
-    await AsyncStorage.removeItem("accessToken");
-    set({ user: null, accessToken: null });
-  },
-
-  restoreSession: async () => {
-    set({ loading: true });
     try {
-      const storedUser = await AsyncStorage.getItem("user");
-      const storedToken = await AsyncStorage.getItem("accessToken");
-
-      if (storedUser && storedToken) {
-        set({ user: JSON.parse(storedUser), accessToken: storedToken });
-      } else {
-        const refreshed = await authService.refreshToken();
-        if (refreshed) {
-          const { user, accessToken } = refreshed;
-          set({ user, accessToken });
-          await AsyncStorage.setItem("user", JSON.stringify(user));
-          await AsyncStorage.setItem("accessToken", accessToken);
-        } else {
-          set({ user: null, accessToken: null });
-        }
-      }
-    } catch (e) {
-      set({ user: null, accessToken: null });
-    } finally {
-      set({ loading: false });
+      await AsyncStorage.removeItem('accessToken');
+      await AsyncStorage.removeItem('user');
+      set({ 
+        user: null, 
+        accessToken: null, 
+        isAuthenticated: false,
+        error: null 
+      });
+    } catch (error) {
+      console.error('Error clearing auth data:', error);
     }
   },
+
+  loadStoredAuth: async () => {
+    try {
+      set({ isLoading: true });
+      const token = await AsyncStorage.getItem('accessToken');
+      const userString = await AsyncStorage.getItem('user');
+      
+      if (token && userString) {
+        const user = JSON.parse(userString);
+        set({ 
+          user, 
+          accessToken: token, 
+          isAuthenticated: true,
+          isLoading: false 
+        });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (error) {
+      console.error('Error loading stored auth:', error);
+      set({ isLoading: false });
+    }
+  },
+
+  setError: (error) => set({ error }),
+  setLoading: (loading) => set({ isLoading: loading }),
 }));
