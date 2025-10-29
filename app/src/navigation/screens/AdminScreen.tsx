@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { LogoutButton } from '../../components/LogoutButton';
 
-export const AdminScreen = () => {
+export const AdminScreen = ({ navigation }: any) => {
   const user = useAuthStore((state) => state.user);
 
   return (
@@ -65,9 +65,12 @@ export const AdminScreen = () => {
           </Text>
           
           <View className="space-y-2">
-            <View className="bg-gray-50 p-4 rounded-lg mb-2">
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('UsersList')}
+              className="bg-gray-50 p-4 rounded-lg mb-2"
+            >
               <Text className="text-gray-800 font-medium">👥 Gestionar Usuarios</Text>
-            </View>
+            </TouchableOpacity>
             <View className="bg-gray-50 p-4 rounded-lg mb-2">
               <Text className="text-gray-800 font-medium">📊 Ver Reportes</Text>
             </View>

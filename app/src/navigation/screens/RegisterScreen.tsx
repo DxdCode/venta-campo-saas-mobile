@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { User, Mail, Lock, UserPlus } from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { authService, setAuthToken } from '../../api/authService';
 import { showToast, showApiError } from '../../utils/toast';
@@ -18,8 +19,8 @@ export const RegisterScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const setUser = useAuthStore((state) => state.setUser);
+  
+  const setAuth = useAuthStore((state) => state.setAuth);
   const setError = useAuthStore((state) => state.setError);
 
   const handleRegister = async () => {
@@ -31,12 +32,15 @@ export const RegisterScreen = ({ navigation }: any) => {
     try {
       setLoading(true);
       setError(null);
-
+      
       const response = await authService.register({ name, email, password });
-
+      
+      // Guardar tokens y usuario
+      await setAuth(response.user, response.accessToken, response.refreshToken);
+      
+      // Configurar token para futuras peticiones
       setAuthToken(response.accessToken);
-      await setUser(response.user, response.accessToken);
-
+      
       showToast.success('¡Cuenta creada!', `Bienvenido ${response.user.name}`);
     } catch (error: any) {
       console.error('Error en registro:', error);
@@ -65,51 +69,63 @@ export const RegisterScreen = ({ navigation }: any) => {
 
           <View className="mb-4">
             <Text className="text-gray-700 mb-2 font-medium">Nombre</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
-              placeholder="Tu nombre completo"
-              value={name}
-              onChangeText={setName}
-              editable={!loading}
-            />
+            <View className="flex-row items-center border border-gray-300 rounded-lg px-4 py-3">
+              <User size={20} color="#9CA3AF" />
+              <TextInput
+                className="flex-1 ml-3 text-base"
+                placeholder="Tu nombre completo"
+                value={name}
+                onChangeText={setName}
+                editable={!loading}
+              />
+            </View>
           </View>
 
           <View className="mb-4">
             <Text className="text-gray-700 mb-2 font-medium">Email</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
-              placeholder="tu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
+            <View className="flex-row items-center border border-gray-300 rounded-lg px-4 py-3">
+              <Mail size={20} color="#9CA3AF" />
+              <TextInput
+                className="flex-1 ml-3 text-base"
+                placeholder="tu@email.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
           </View>
 
           <View className="mb-6">
             <Text className="text-gray-700 mb-2 font-medium">Contraseña</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
-              placeholder="Mínimo 8 caracteres"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-            />
+            <View className="flex-row items-center border border-gray-300 rounded-lg px-4 py-3">
+              <Lock size={20} color="#9CA3AF" />
+              <TextInput
+                className="flex-1 ml-3 text-base"
+                placeholder="Mínimo 8 caracteres"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                editable={!loading}
+              />
+            </View>
           </View>
 
           <TouchableOpacity
             onPress={handleRegister}
             disabled={loading}
-            className="bg-blue-500 py-4 rounded-lg mb-4"
+            className="bg-blue-500 py-4 rounded-lg mb-4 flex-row items-center justify-center"
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white text-center font-semibold text-base">
-                Registrarse
-              </Text>
+              <>
+                <UserPlus size={20} color="#fff" />
+                <Text className="text-white font-semibold text-base ml-2">
+                  Registrarse
+                </Text>
+              </>
             )}
           </TouchableOpacity>
 

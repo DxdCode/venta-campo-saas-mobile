@@ -2,26 +2,21 @@ import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
-import { LoginScreen } from './screens/LoginScreen';
-import { RegisterScreen } from './screens/RegisterScreen';
 import { AdminScreen } from './screens/AdminScreen';
 import { UserScreen } from './screens/UserScreen';
-import { setAuthToken } from '../api/authService';
+import { UsersListScreen } from './screens/UsersListScreen';
+import { CreateUserScreen } from './screens/CreateUserScreen';
+import { LoginScreen } from './screens/RegisterScreen';
+import { RegisterScreen } from './screens/LoginScreen';
 
 const Stack = createNativeStackNavigator();
 
 export const RootNavigator = () => {
-  const { isAuthenticated, isLoading, user, loadStoredAuth, accessToken } = useAuth();
+  const { isAuthenticated, isLoading, user, loadStoredAuth } = useAuth();
 
   useEffect(() => {
     loadStoredAuth();
   }, []);
-
-  useEffect(() => {
-    if (accessToken) {
-      setAuthToken(accessToken);
-    }
-  }, [accessToken]);
 
   if (isLoading) {
     return (
@@ -32,11 +27,7 @@ export const RootNavigator = () => {
   }
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -45,37 +36,13 @@ export const RootNavigator = () => {
       ) : (
         <>
           {user?.role === 'administrador' ? (
-            <Stack.Screen 
-              name="Admin" 
-              component={AdminScreen}
-              options={{ 
-                headerShown: true,
-                title: 'Panel de Administrador',
-                headerStyle: {
-                  backgroundColor: '#3B82F6',
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: 'bold',
-                },
-              }}
-            />
+            <>
+              <Stack.Screen name="Admin" component={AdminScreen} />
+              <Stack.Screen name="UsersList" component={UsersListScreen} />
+              <Stack.Screen name="CreateUser" component={CreateUserScreen} />
+            </>
           ) : (
-            <Stack.Screen 
-              name="User" 
-              component={UserScreen}
-              options={{ 
-                headerShown: true,
-                title: 'Mi Perfil',
-                headerStyle: {
-                  backgroundColor: '#3B82F6',
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: 'bold',
-                },
-              }}
-            />
+            <Stack.Screen name="User" component={UserScreen} />
           )}
         </>
       )}

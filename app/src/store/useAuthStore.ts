@@ -1,4 +1,6 @@
+// app/src/store/useAuthStore.ts
 import { create } from 'zustand';
+import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface User {
@@ -8,33 +10,38 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   
   // Actions
-  setUser: (user: User, accessToken: string) => Promise<void>;
+  setAuth: (user: User, accessToken: string, refreshToken: string) => Promise<void>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
+  getRefreshToken: () => Promise<string | null>;
+  updateAccessToken: (accessToken: string) => Promise<void>;
   setError: (error: string | null) => void;
   setLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  accessToken: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
 
-  setUser: async (user, accessToken) => {
+  setAuth: async (user, accessToken, refreshToken) => {
     try {
-      await AsyncStorage.setItem('accessToken', accessToken);
+      // Guardar tokens en SecureStore (encriptado)
+      await SecureStore.setItemAsync('accessToken', accessToken);
+      await SecureStore.setItemAsync('refreshToken', refreshToken);
+      
+      // Guardar usuario en AsyncStorage
       await AsyncStorage.setItem('user', JSON.stringify(user));
+      
       set({ 
         user, 
-        accessToken, 
         isAuthenticated: true, 
         error: null 
       });
@@ -44,13 +51,43 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
+  updateAccessToken: async (accessToken) => {
+    try {
+      await SecureStore.setItemAsync('accessToken', accessToken);
+    } catch (error) {
+      console.error('Error updating access token:', error);
+    }
+  },
+
+  getAccessToken: async () => {
+    try {
+      return await SecureStore.getItemAsync('accessToken');
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      return null;
+    }
+  },
+
+  getRefreshToken: async () => {
+    try {
+      return await SecureStore.getItemAsync('refreshToken');
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  },
+
   logout: async () => {
     try {
-      await AsyncStorage.removeItem('accessToken');
+      // Eliminar tokens de SecureStore
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
+      
+      // Eliminar usuario de AsyncStorage
       await AsyncStorage.removeItem('user');
+      
       set({ 
         user: null, 
-        accessToken: null, 
         isAuthenticated: false,
         error: null 
       });
@@ -62,14 +99,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   loadStoredAuth: async () => {
     try {
       set({ isLoading: true });
-      const token = await AsyncStorage.getItem('accessToken');
-      const userString = await AsyncStorage.getItem('user');
       
-      if (token && userString) {
+      const userString = await AsyncStorage.getItem('user');
+      const accessToken = await SecureStore.getItemAsync('accessToken');
+      
+      if (userString && accessToken) {
         const user = JSON.parse(userString);
         set({ 
           user, 
-          accessToken: token, 
           isAuthenticated: true,
           isLoading: false 
         });

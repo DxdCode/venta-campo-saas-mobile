@@ -1,16 +1,16 @@
+// app/src/api/authService.ts
 import axios from 'axios';
 import { API_URL } from '../utils/constants';
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, 
+  timeout: 10000,
 });
 
-// Interceptor para agregar el token a las peticiones
+// Función para configurar el token en los headers
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -23,7 +23,6 @@ export const setAuthToken = (token: string | null) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Log para debugging
     if (error.response) {
       console.log('API Error:', {
         status: error.response.status,
@@ -52,6 +51,12 @@ interface AuthResponse {
     role: string;
   };
   accessToken: string;
+  refreshToken: string;
+}
+
+interface RefreshResponse {
+  accessToken: string;
+  refreshToken?: string; // Opcional si rotas el refresh token
 }
 
 export const authService = {
@@ -65,8 +70,8 @@ export const authService = {
     return response.data;
   },
 
-  refreshToken: async (): Promise<AuthResponse> => {
-    const response = await api.post('/auth/refresh-token');
+  refreshToken: async (refreshToken: string): Promise<RefreshResponse> => {
+    const response = await api.post('/auth/refresh-token', { refreshToken });
     return response.data;
   },
 
